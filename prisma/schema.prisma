@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// npx prisma migrate dev --name init "마이그레이션, 깃헙의 버전관리처럼 버전을 관리할 수 있는 것"
+// npx prisma migrate dev  " 생성한 이후에 바뀐 내용을 저장하고 싶을 때"
+// npx prisma migrate resolve --applied "프로덕션에 적용한 마이그레이션 이름" < 마이그레이션 완료 명령어
+
+model Posts {
+  postId      Int     @id @default(autoincrement()) @map("id")
+  user        String
+  password    String 
+  title       String  
+  content     String  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Posts")
+}
+
+model Comments {
+  commentId   Int      @id @default(autoincrement()) @map("id")
+  user        String   
+  password    String   
+  content     String   @db.Text
+  postId      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Comments")
+}

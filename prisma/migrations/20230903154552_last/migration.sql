@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Posts` MODIFY `user` VARCHAR(191) NOT NULL;
