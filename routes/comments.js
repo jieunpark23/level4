@@ -76,7 +76,14 @@ router.get('/:postId/comments', async(req, res, next) => {
         const {postId} = req.params;
         const comments = await prisma.comments.findMany({
             where: { postId : Number(postId)},
-            select: { postId: false },
+            // select: { postId: false }, // { postId: false } 라고 하면, postId만 제외되고 반환된다. 
+            select: {
+                commentId: true,
+                user: true,
+                password: true,
+                content: true,
+                createdAt: true,
+            },
             orderBy: { createdAt: 'desc' }
         });
 
@@ -108,7 +115,7 @@ router.put('/:postId/comments/:commentId', async (req, res, next) => {
         if (!content) return res.status(400).json({ message : "댓글 내용을 입력해주세요." });
         if(!postId || !commentId) return res.status(400).json({ message: "데이터 형식이 올바르지 않습니다." });
         
-        const post = await prisma.posts.findUnique({ where: { postId: +postId } });
+        const post = await prisma.posts.findUnique({ where: { postId: Number(postId) } });
         if(!post) return res.status(404).json({ message : "게시글이 존재하지 않습니다." });
 
         const comment = await prisma.comments.findUnique({ where: { commentId: Number(commentId) } });
@@ -140,11 +147,13 @@ router.put('/:postId/comments/:commentId', async (req, res, next) => {
 router.delete('/:postId/comments/:commentId', async (req, res, next) => {
 
     try {
-        const { commentId } = req.params;
+        const { postId, commentId } = req.params;
         const { password } = req.body;
         
+        const post = await prisma.posts.findUnique( { where : { postId: Number(postId) } });
+        if(!post)return res.status(400).json({ message : "게시글 조회에 실패하였습니다."});
+
         const comment = await prisma.comments.findUnique({ where: { commentId: Number(commentId) } });
-    
         if(!comment)return res.status(404).json({ message : "댓글 조회에 실패하였습니다." });
 
         if(comment.password !== password) return res.status(401).json({ message: "비밀번호가 일치하지 않습니다."})
@@ -158,3 +167,4 @@ router.delete('/:postId/comments/:commentId', async (req, res, next) => {
     
 
 export default router
+

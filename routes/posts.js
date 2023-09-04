@@ -118,7 +118,8 @@ try {
 
     if(!post){
         return res.status(404).json({errorMessage : "게시글이 조회에 실패하였습니다." });
-    } else if(post.password !== password){
+    }
+    if(post.password !== password){
         return res.status(401).json({ errorMessage: "비밀번호가 일치하지 않습니다."})
     }
 
