@@ -45,9 +45,7 @@ model Comments {
   commentId Int    @id @default(autoincrement()) @map("id")
   PostId    Int
   UserId    Int
-  Nickname  String
   comment   String @db.Text
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
