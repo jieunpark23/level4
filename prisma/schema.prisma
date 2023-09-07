@@ -14,28 +14,45 @@ datasource db {
 // npx prisma migrate dev  " 생성한 이후에 바뀐 내용을 저장하고 싶을 때"
 // npx prisma migrate resolve --applied "프로덕션에 적용한 마이그레이션 이름" < 마이그레이션 완료 명령어
 
-model Posts {
-  postId      Int     @id @default(autoincrement()) @map("id")
-  user        String
-  password    String 
-  title       String  
-  content     String  @db.Text
-
+model Users {
+  userId    Int      @id @default(autoincrement()) @map("id")
+  nickname  String   @unique
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Posts Posts[]
+  Comments Comments[]
+
+  @@map("Users")
+}
+
+model Posts {
+  postId    Int      @id @default(autoincrement()) @map("id")
+  UserId    Int
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User Users @relation(fields: [UserId], references: [userId], onDelete: Cascade)
+  Comments Comments[]
 
   @@map("Posts")
 }
 
 model Comments {
-  commentId   Int      @id @default(autoincrement()) @map("id")
-  user        String   
-  password    String   
-  content     String   @db.Text
-  postId      Int
+  commentId Int    @id @default(autoincrement()) @map("id")
+  PostId    Int
+  UserId    Int
+  Nickname  String
+  comment   String @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  User Users @relation(fields: [UserId], references: [userId], onDelete: Cascade)
+  Post Posts @relation(fields: [PostId], references: [postId], onDelete: Cascade)
 
   @@map("Comments")
 }
