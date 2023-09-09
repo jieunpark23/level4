@@ -14,11 +14,12 @@
  *
  * 이 모듈은 댓글 기능과 관련된 라우트를 처리합니다. 댓글 생성, 읽기, 업데이트, 삭제 API를 제공합니다.
  *
- * @module commentsRouter
+ * @module Comments
  */
 
 import express from 'express';
 import { prisma } from '../utils/prisma/index.js';
+import authMiddleware from '../middlewares/auth.js';
 
 // express.Router()를 이용해 라우터를 생성합니다.
 const router = express.Router();
@@ -43,21 +44,32 @@ const handleError = (res, error) => {
  * @param {object} res - 클라이언트에게 결과를 반환하기 위한 익스프레스 응답 객체
  * @param {function} next - 익스프레스 파이프라인 내의 next 미들웨어 함수
  */
-router.post('/:postId/comments', async (req, res, next) => {
+router.post('/:postId/comments', authMiddleware, async (req, res, next) => {
   try {
-    const { user, password, content } = req.body;
+    const { userId } = req.user;
+    const { comment } = req.body;
     const { postId } = req.params;
+
+    if (!comment || !postId) {
+      return res
+        .status(412)
+        .send({ message: '데이터 형식이 올바르지 않습니다.' });
+    }
 
     const post = await prisma.posts.findUnique({
       where: { postId: Number(postId) },
     });
     if (!post)
-      return res.status(404).json({ message: '존재하지 않는 포스트입니다.' });
+      return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
 
     await prisma.comments.create({
-      data: { user, password, content, postId: post.postId },
+      data: {
+        UserId: +userId, // +userId는 userId를 숫자로 변환하는 것
+        PostId: +postId,
+        comment, 
+      },
     });
-    res.status(201).json({ message: '댓글을 생성하였습니다.' });
+    res.status(201).json({ message: '댓글을 작성하였습니다.' });
   } catch (error) {
     handleError(res, error);
   }
@@ -79,20 +91,32 @@ router.post('/:postId/comments', async (req, res, next) => {
 router.get('/:postId/comments', async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const comments = await prisma.comments.findMany({
+
+    const post = await prisma.posts.findUnique({
       where: { postId: Number(postId) },
+    });
+    if (!post)  // 게시글이 존재하지 않는다면, 404 상태 코드를 반환합니다.
+      return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
+
+    const comments = await prisma.comments.findMany({
+      where: { PostId: Number(postId) },
       // select: { postId: false }, // { postId: false } 라고 하면, postId만 제외되고 반환된다.
       select: {
         commentId: true,
-        user: true,
-        password: true,
-        content: true,
+        comment: true,
         createdAt: true,
+        updatedAt: true,
+        User: {
+          select: {
+            userId: true,
+            nickname: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.status(200).json({ data: comments });
+    res.status(200).json({ comments: comments });
   } catch (error) {
     handleError(res, error);
   }
@@ -112,12 +136,13 @@ router.get('/:postId/comments', async (req, res, next) => {
  * @param {object} res - 클라이언트에게 결과를 반환하기 위한 익스프레스 응답 객체
  * @param {function} next - 익스프레스 파이프라인 내의 next 미들웨어 함수
  */
-router.put('/:postId/comments/:commentId', async (req, res, next) => {
+router.put('/:postId/comments/:commentId', authMiddleware,  async (req, res, next) => {
   try {
+    const { userId } = req.user;
     const { postId, commentId } = req.params;
-    const { password, content } = req.body;
+    const { comment } = req.body;
 
-    if (!content)
+    if (!comment)
       return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
     if (!postId || !commentId)
       return res
@@ -130,17 +155,17 @@ router.put('/:postId/comments/:commentId', async (req, res, next) => {
     if (!post)
       return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
 
-    const comment = await prisma.comments.findUnique({
+    const Comment = await prisma.comments.findUnique({
       where: { commentId: Number(commentId) },
     });
-    if (!comment)
+    if (!Comment)
       return res.status(404).json({ message: '댓글이 존재하지 않습니다.' });
 
-    if (post.password !== password)
-      return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
+    if (Comment.UserId !== userId)
+      return res.status(401).json({ message: '댓글의 수정권한이 존재하지 않습니다.' });
 
     await prisma.comments.update({
-      data: { content },
+      data: { comment },
       where: { commentId: Number(commentId) },
     });
     res.status(200).json({ data: '댓글을 수정하였습니다.' });
@@ -163,27 +188,31 @@ router.put('/:postId/comments/:commentId', async (req, res, next) => {
  * @param {object} res - 클라이언트에게 결과를 반환하기 위한 익스프레스 응답 객체
  * @param {function} next - 익스프레스 파이프라인 내의 next 미들웨어 함수
  */
-router.delete('/:postId/comments/:commentId', async (req, res, next) => {
+router.delete('/:postId/comments/:commentId', authMiddleware, async (req, res, next) => {
   try {
+    const { userId } = req.user;
     const { postId, commentId } = req.params;
-    const { password } = req.body;
 
     const post = await prisma.posts.findUnique({
       where: { postId: Number(postId) },
     });
     if (!post)
-      return res.status(400).json({ message: '게시글 조회에 실패하였습니다.' });
+      return res.status(400).json({ message: '게시글이 존재하지 않습니다.' });
 
     const comment = await prisma.comments.findUnique({
       where: { commentId: Number(commentId) },
     });
     if (!comment)
-      return res.status(404).json({ message: '댓글 조회에 실패하였습니다.' });
+      return res.status(404).json({ message: '댓글이 존재하지 않습니다.' });
 
-    if (comment.password !== password)
-      return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
+    if (comment.UserId !== userId)
+      return res.status(401).json({ message: '댓글의 삭제권한이 존재하지 않습니다.' }); // 이거는 어떻게 확인가능한가요?
 
-    await prisma.comments.delete({ where: { commentId: Number(commentId) } });
+    await prisma.comments.delete({ 
+      where: { 
+        commentId: Number(commentId) 
+      },
+    });
     res.status(200).json({ data: '댓글 삭제가 완료되었습니다.' });
   } catch (error) {
     handleError(res, error);
