@@ -17,7 +17,7 @@ export default async function (req, res, next) {
     if (tokenType !== 'Bearer')
       throw new Error('토큰 타입이 일치하지 않습니다.');
 
-    const decodedToken = jwt.verify(token, 'customized_secret_key'); // 토큰을 검증합니다.
+    const decodedToken = jwt.verify(token, process.env.SECRET_KEY ); // 토큰을 검증합니다. // process.env.SECRET_KEY는 .env 파일에 저장된 비밀키를 가져옵니다.
     const userId = decodedToken.userId; // 토큰에 담긴 userId를 가져옵니다.
     
     const user = await prisma.users.findFirst({

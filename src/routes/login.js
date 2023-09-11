@@ -30,7 +30,7 @@ router.post('/login', async (req, res, next) => {
         {
         userId: user.userId,
         },
-        'customized_secret_key', // 비밀키를 입력합니다. ( 나중에 dotenv를 이용해서 외부에서 코드를 보더라도 알 수 없게 구현해야 합니다. 예: process.env.JWT_SECRET)
+        process.env.SECRET_KEY, // 비밀키를 입력합니다. ( 나중에 dotenv를 이용해서 외부에서 코드를 보더라도 알 수 없게 구현해야 합니다. 예: process.env.JWT_SECRET)
         { expiresIn: '1h' }
     );
     

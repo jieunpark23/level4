@@ -3,9 +3,12 @@ import cookieParser from 'cookie-parser';
 import LogMiddleware from './middlewares/log.js';
 import ErrorHandlingMiddleware from './middlewares/error-handling.js';
 import routes from './routes/index.js';
+import dotenv from 'dotenv'; // 배포할때는 있어야 port가 잡힌다. // yarn add dotenv
+
+dotenv.config();
 
 const app = express();
-const PORT = 3017;
+const PORT = process.env.PORT;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
