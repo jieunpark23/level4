@@ -21,6 +21,7 @@ router.post('/', authMiddleware, async (req, res, next) => {
         .send({ message: '요청한 데이터 형식이 올바르지 않습니다.' });
     }
 
+    /** 질문 형식이 일치하지 않습니다. -> 어떤 의도로 접근해야하는지 형식이라는 부분을 잘 모르겠습니다. */
     if (typeof title !== 'string') {
       return res.status(412).send({ message: '게시글 제목의 형식이 일치하지 않습니다.' });
     }
@@ -61,6 +62,11 @@ router.get('/', async (req, res, next) => {
           nickname: true,
         },
       },
+      _count:{
+        select: {
+          Likes: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc', // 작성 날짜 기준으로 내림차순 정렬
@@ -93,6 +99,11 @@ router.get('/:postId', async (req, res, next) => {
         select: {
           userId: true,
           nickname: true,
+        },
+      },
+      _count: {
+        select: {
+          Likes: true,
         },
       },
     },
